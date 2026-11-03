@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración - Academia de Fútbol</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        body { background-color: #0f172a; color: white; padding: 20px; }
+        .container { max-width: 950px; margin: 0 auto; }
+        h1 { color: #38bdf8; margin-bottom: 20px; text-align: center; }
+        .card { background: #1e293b; padding: 20px; border-radius: 10px; margin-bottom: 25px; }
+        .form-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        input { flex: 1; min-width: 150px; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; }
+        button { padding: 10px 20px; background-color: #16a34a; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        button:hover { background-color: #15803d; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
+        th { background-color: #334155; color: #38bdf8; }
+        .btn-estado { padding: 6px 12px; border-radius: 4px; border: none; font-weight: bold; display: inline-block; }
+        .aldia { background-color: #166534; color: #bbf7d0; }
+        .debe { background-color: #991b1b; color: #fecaca; }
+        .nav-link { display: inline-block; margin-bottom: 15px; color: #38bdf8; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="index.html" class="nav-link">← Ir a Marcador de Asistencia</a>
+    <h1>⚽ Panel de Administración de Alumnos</h1>
+
+    <!-- 1. Formulario de Registro -->
+    <div class="card">
+        <h3>Registrar Nuevo Alumno</h3>
+        <form id="form-nuevo-alumno" class="form-group">
+            <input type="text" id="nuevo-dni" placeholder="DNI" maxlength="8" required autocomplete="off">
+            <input type="text" id="nuevo-nombre" placeholder="Nombre" required autocomplete="off">
+            <input type="text" id="nuevo-apellido" placeholder="Apellido" required autocomplete="off">
+            <button type="submit">Guardar Alumno</button>
+        </form>
+    </div>
+
+    <!-- 2. Lista de Alumnos -->
+    <div class="card">
+        <h3>Lista de Alumnos</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>DNI</th>
+                    <th>Nombre Completo</th>
+                    <th>Estado de Pago</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-alumnos"></tbody>
+        </table>
+    </div>
+
+    <!-- 3. Reporte de Asistencias -->
+    <div class="card">
+        <h3>📋 Histórico de Asistencias Registradas</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>DNI</th>
+                    <th>Alumno</th>
+                    <th>Fecha y Hora</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-asistencias"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:3000/api';
+
+    // Cargar alumnos al inicio
+    async function cargarAlumnos() {
+        const res = await fetch(`${API_URL}/alumnos`);
+        const alumnos = await res.json();
+        const tbody = document.getElementById('tabla-alumnos');
+        tbody.innerHTML = '';
+
+        alumnos.forEach(alumno => {
+            const tr = document.createElement('tr');
+            const estadoTexto = alumno.cuota_al_dia ? 'Al día' : 'Pago Pendiente';
+            const estadoClase = alumno.cuota_al_dia ? 'aldia' : 'debe';
+            const nuevoEstado = alumno.cuota_al_dia ? 0 : 1;
+
+            tr.innerHTML = `
+                <td>${alumno.dni}</td>
+                <td>${alumno.nombre} ${alumno.apellido}</td>
+                <td><span class="btn-estado ${estadoClase}">${estadoTexto}</span></td>
+                <td>
+                    <button onclick="cambiarEstado('${alumno.dni}', ${nuevoEstado})">
+                        Cambiar a ${alumno.cuota_al_dia ? 'Pendiente' : 'Al día'}
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Cargar historial de asistencias
+    async function cargarAsistencias() {
+        const res = await fetch(`${API_URL}/asistencias`);
+        const asistencias = await res.json();
+        const tbody = document.getElementById('tabla-asistencias');
+        tbody.innerHTML = '';
+
+        asistencias.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${item.dni_alumno}</td>
+                <td>${item.nombre} ${item.apellido}</td>
+                <td>${item.fecha_hora}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Registrar alumno
+    document.getElementById('form-nuevo-alumno').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dni = document.getElementById('nuevo-dni').value.trim();
+        const nombre = document.getElementById('nuevo-nombre').value.trim();
+        const apellido = document.getElementById('nuevo-apellido').value.trim();
+
+        const res = await fetch(`${API_URL}/alumnos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dni, nombre, apellido })
+        });
+
+        if (res.ok) {
+            alert('Alumno registrado correctamente');
+            document.getElementById('form-nuevo-alumno').reset();
+            cargarAlumnos();
+        } else {
+            const data = await res.json();
+            alert(data.error);
+        }
+    });
+
+    // Cambiar estado de pago
+    async function cambiarEstado(dni, estado) {
+        await fetch(`${API_URL}/alumnos/${dni}/pago`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cuota_al_dia: estado })
+        });
+        cargarAlumnos();
+    }
+
+    // Inicializar datos en pantalla
+    cargarAlumnos();
+    cargarAsistencias();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academia de Fútbol - Asistencia</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #0f172a; }
+        .card { background: #1e293b; padding: 2.5rem; border-radius: 12px; width: 100%; max-width: 420px; text-align: center; color: white; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        h2 { margin-bottom: 8px; color: #38bdf8; }
+        p { margin-bottom: 20px; font-size: 0.9rem; color: #94a3b8; }
+        input { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #334155; border-radius: 8px; font-size: 1.2rem; text-align: center; background-color: #0f172a; color: white; outline: none; }
+        input:focus { border-color: #38bdf8; }
+        button { width: 100%; padding: 14px; background-color: #16a34a; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background-color: #15803d; }
+        .resultado { margin-top: 20px; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.95rem; display: none; }
+        .exito { background-color: #166534; color: #bbf7d0; border: 1px solid #22c55e; }
+        .error { background-color: #991b1b; color: #fecaca; border: 1px solid #ef4444; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>⚽ Academia de Fútbol</h2>
+    <p>Ingresa tu número de DNI para registrar la asistencia</p>
+    
+    <form id="form-asistencia">
+        <input type="text" id="dni" placeholder="Número de DNI" maxlength="8" required autofocus autocomplete="off">
+        <button type="submit">MARCAR ASISTENCIA</button>
+    </form>
+    
+    <div id="mensaje" class="resultado"></div>
+</div>
+
+<script>
+    const form = document.getElementById('form-asistencia');
+    const inputDni = document.getElementById('dni');
+    const mensajeDiv = document.getElementById('mensaje');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dni = inputDni.value.trim();
+
+        try {
+            const respuesta = await fetch('http://localhost:3000/api/asistencia', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dni })
+            });
+
+            const data = await respuesta.json();
+            mensajeDiv.style.display = 'block';
+
+            if (respuesta.ok) {
+                mensajeDiv.className = 'resultado exito';
+                mensajeDiv.innerText = data.mensaje;
+            } else {
+                mensajeDiv.className = 'resultado error';
+                mensajeDiv.innerText = data.error;
+            }
+        } catch (err) {
+            mensajeDiv.style.display = 'block';
+            mensajeDiv.className = 'resultado error';
+            mensajeDiv.innerText = '⚠️ Error: No se pudo conectar con el servidor.';
+        }
+
+        // Limpiar input y reenfocar para la siguiente persona
+        inputDni.value = '';
+        inputDni.focus();
+    });
+</script>
+
+</body>
+</html>
