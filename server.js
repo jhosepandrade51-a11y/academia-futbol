@@ -1,10 +1,10 @@
 const express = require('express');
-app.use(express.static(__dirname));
 const cors = require('cors');
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 
 const app = express();
+app.use(express.static(__dirname));
 app.use(cors());
 app.use(express.json());
 
